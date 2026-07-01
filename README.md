@@ -1,6 +1,16 @@
 # tf-molecule-kms-key-alias-aws
 
-KMS key with alias for encryption key management.
+A composite (molecule) Terraform module that provisions a customer-managed AWS KMS key together with a friendly KMS alias, wired for consistent naming and tagging via `tf-label`.
+
+## Features
+
+- Creates a customer-managed KMS key (`tf-atom-kms-key-aws`) and a KMS alias (`tf-atom-kms-alias-aws`) as a single, cohesive unit.
+- Automatic key rotation toggle via `enable_key_rotation` (default `true`).
+- Configurable key behaviour: `key_usage` (`ENCRYPT_DECRYPT` / `SIGN_VERIFY`), `customer_master_key_spec` (e.g. `SYMMETRIC_DEFAULT`, `RSA_2048`), and `multi_region` keys.
+- Configurable `deletion_window_in_days` and human-readable `description`.
+- Consistent, `tf-label`-driven naming and tagging (namespace / environment / stage / name / attributes / tags).
+- `enabled = false` disables the module and creates no resources, returning `null` for all resource outputs.
+- Exposes `key_arn`, `key_id`, `alias_arn`, and `alias_name` outputs for downstream consumers.
 
 ## Usage
 
@@ -12,8 +22,10 @@ module "kms" {
   environment = "prod"
   name        = "app-encryption"
 
-  description         = "Application encryption key"
-  enable_key_rotation = true
+  description             = "Application encryption key"
+  enable_key_rotation     = true
+  deletion_window_in_days = 30
+  multi_region            = false
 }
 ```
 
@@ -79,3 +91,11 @@ No resources.
 | <a name="output_key_arn"></a> [key\_arn](#output\_key\_arn) | ARN of the KMS key |
 | <a name="output_key_id"></a> [key\_id](#output\_key\_id) | ID of the KMS key |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+Unit tests use a mock AWS provider (plan-only, no real AWS calls) and live under `tests/unit/`:
+
+```bash
+terraform init -backend=false && terraform test -test-directory=tests/unit
+```
